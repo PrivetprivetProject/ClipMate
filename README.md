@@ -1,1 +1,1 @@
-# MyDesktopMate
+# ClipMate
