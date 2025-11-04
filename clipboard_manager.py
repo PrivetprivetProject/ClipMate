@@ -1,56 +1,62 @@
-import pyautogui
+import keyboard
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer
-from PyQt6.QtGui import QClipboard
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QMainWindow
 
 class ClipboardManager(QObject):
     history_updated = pyqtSignal(list)
 
-    def __init__(self, main_ui):
+    def __init__(self, settings_manager):
         super().__init__()
-        self.main_ui = main_ui
+        self.settings = settings_manager
         self.clipboard = QApplication.clipboard()
-        self.clipboard_history = []
-        self.max_history_size = 10
+        self.full_history = settings_manager.get_history()
+        self.filtered_history = self.full_history.copy()
+        self.max_size = settings_manager.get('max_history_size')
+        self.current_filter = ''
 
-        self.setup_clipboard_monitoring()
+        self.clipboard.dataChanged.connect(self.on_clipboard_change)
+        settings_manager.settings_changed.connect(self.on_settings_change)
 
-    def setup_clipboard_monitoring(self):
-        self.clipboard.dataChanged.connect(self.on_clipboard_changed)
+    def on_settings_change(self, key, value):
+        if key == 'max_history_size':
+            self.max_size = value
+            if len(self.full_history) > self.max_size:
+                self.update_and_save_history(self.full_history[:self.max_size])
 
-    def on_clipboard_changed(self):
-        current_text = self.clipboard.text().strip()
-        if current_text not in self.clipboard_history:
-            self.clipboard_history.insert(0, current_text)
-            if len(self.clipboard_history) > self.max_history_size:
-                self.clipboard_history = self.clipboard_history[:self.max_history_size]
+    def on_clipboard_change(self):
+        text = self.clipboard.text().strip()
+        if text and text not in self.full_history:
+            new_history = [text] + self.full_history
+            if len(new_history) > self.max_size:
+                new_history = new_history[:self.max_size]
 
-            self.history_updated.emit(self.clipboard_history)
+            self.update_and_save_history(new_history)
+
+    def update_and_save_history(self, history):
+        self.full_history = history
+        self.filtered_history = history[:]
+        self.current_filter = ''
+        self.history_updated.emit(history)
+        self.settings.save_history(history)
 
     def paste_to_active_app(self, text):
-        self.main_ui.showMinimized()
-        QTimer.singleShot(300, lambda: self._perform_paste(text))
+        self.minimize_windows()
+        QTimer.singleShot(100, lambda: self.do_paste(text))
 
-    def _perform_paste(self, text):
+    def do_paste(self, text):
         self.clipboard.setText(text)
-        pyautogui.hotkey('ctrl', 'v')
+        keyboard.send('ctrl+v')
 
-        QTimer.singleShot(100, self._restore_main_ui)
+    def minimize_windows(self):
+        for widget in QApplication.topLevelWidgets():
+            if isinstance(widget, QMainWindow):
+                widget.showMinimized()
 
-    def _restore_main_ui(self):
-        self.main_ui.showNormal()
-        self.main_ui.activateWindow()
+    def on_filter_text_changed(self, filter_text):
+        self.current_filter = filter_text.lower().strip()
+        self.filtered_history = self.full_history if not self.current_filter else [
+                text for text in self.full_history
+                if self.current_filter in text.lower()
+            ]
 
-
-    def clear_history(self):
-        self.clipboard_history.clear()
-        self.history_updated.emit(self.clipboard_history)
-
-    def set_max_history_size(self, size):
-        self.max_history_size = size
-        if len(self.clipboard_history) > size:
-            self.clipboard_history = self.clipboard_history[:size]
-            self.history_updated.emit(self.clipboard_history)
-
-    def get_history(self):
-        return self.clipboard_history.copy()
+        self.history_updated.emit(self.filtered_history)

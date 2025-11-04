@@ -12,9 +12,8 @@ class SettingsManager(QObject):
     def load_settings(self):
         default_settings = {
             'max_history_size': 10,
-            'start_minimized': False,
-            'auto_clear_interval': 0,
-            'hotkey_paste': 'Ctrl+Shift+V'
+            'clipboard_history': [],
+            'global_hotkey': 'Ctrl+Shift+H'
         }
 
         if os.path.exists(self.setting_file):
@@ -34,11 +33,18 @@ class SettingsManager(QObject):
         except Exception:
             pass
 
-    def get_settings(self, key, default = None):
+    def get(self, key, default=None):
         return self.settings.get(key, default)
 
-    def set_settings(self, key, value):
+    def set(self, key, value):
         if self.settings.get(key) != value:
             self.settings[key] = value
             self.settings_changed.emit(key, value)
             self.save_settings()
+
+    def get_history(self):
+        return self.settings.get('clipboard_history', [])
+
+    def save_history(self, history):
+        self.settings['clipboard_history'] = history
+        self.save_settings()

@@ -1,43 +1,50 @@
 import sys
-from PyQt6.QtWidgets import (QApplication)
-from PyQt6.QtCore import (Qt)
+from PyQt6.QtWidgets import QApplication
 from tray_manager import TrayManager
 from clipboard_manager import ClipboardManager
 from settings_manager import SettingsManager
-from ui_components import MainUI
+from ui_components import MainUI, SettingsUI
+
 
 class ClipMateApp:
     def __init__(self):
         self.app = QApplication(sys.argv)
+        self.settings = SettingsManager()
+        self.clipboard = ClipboardManager(self.settings)
+        self.main_ui = MainUI(self.settings)
+        self.settings_ui = SettingsUI(self.settings)
+        self.tray = TrayManager(self.settings)
 
-        self.main_ui = MainUI()
-        self.clipboard_manager = ClipboardManager(self.main_ui)
-        self.settings_manager = SettingsManager()
-        self.tray_manager = TrayManager(
-            main_ui=self.main_ui,
-            clipboard_manager=self.clipboard_manager,
-            settings_manager=self.settings_manager
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.clipboard.history_updated.connect(self.main_ui.update_history_list)
+
+        self.main_ui.paste_requested.connect(self.clipboard.paste_to_active_app)
+        self.main_ui.clear_history_requested.connect(
+            lambda: self.clipboard.update_and_save_history([])
         )
+        self.main_ui.filter_text_changed.connect(self.clipboard.on_filter_text_changed)
 
-        self.setup_connection()
+        self.tray.show_main.connect(self.show_main_window)
+        self.tray.show_settings.connect(self.settings_ui.show)
+        self.tray.quit_app.connect(self.quit_app)
 
-    def setup_connection(self):
-        self.clipboard_manager.history_updated.connect(self.main_ui.update_history_list)
-        self.main_ui.paste_requested.connect(self.clipboard_manager.paste_to_active_app)
-        self.settings_manager.settings_changed.connect(self.on_settings_changed)
+        self.main_ui.show_settings.connect(self.settings_ui.show)
 
-        self.tray_manager.show_main_requested.connect(self.main_ui.show_main_window)
-        self.tray_manager.show_settings_requested.connect(self.main_ui.show_settings_window)
-        self.tray_manager.hide_requested.connect(self.main_ui.hide)
-        self.tray_manager.quit_requested.connect(self.app.quit)
+    def show_main_window(self):
+        self.main_ui.show()
+        self.main_ui.raise_()
+        self.main_ui.activateWindow()
 
-    def on_settings_changed(self, key, value):
-        if key == 'max_history_size':
-            self.clipboard_manager.set_max_history_size(value)
+    def quit_app(self):
+        self.tray.cleanup()
+        self.app.quit()
 
     def run(self):
         self.main_ui.show()
         return self.app.exec()
+
 
 if __name__ == '__main__':
     app = ClipMateApp()
