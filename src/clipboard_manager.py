@@ -4,14 +4,19 @@ from PyQt6.QtWidgets import QApplication, QMainWindow
 
 class ClipboardManager(QObject):
     history_updated = pyqtSignal(list)
+    pinned_history_updated = pyqtSignal(list)
 
     def __init__(self, settings_manager):
         super().__init__()
         self.settings = settings_manager
         self.clipboard = QApplication.clipboard()
+
         self.full_history = settings_manager.get_history()
         self.filtered_history = self.full_history.copy()
         self.max_size = settings_manager.get('max_history_size')
+
+        self.full_pinned_history = settings_manager.get_pinned_history()
+        self.filtered_pinned_history = self.full_pinned_history.copy()
         self.current_filter = ''
 
         self.clipboard.dataChanged.connect(self.on_clipboard_change)
@@ -31,6 +36,32 @@ class ClipboardManager(QObject):
                 new_history = new_history[:self.max_size]
 
             self.update_and_save_history(new_history)
+
+    def pin_current_item(self):
+        if self.full_history:
+            if self.current_filter and self.filtered_history:
+                item_to_pin = self.full_history[0] if self.filtered_history else self.full_history[0]
+            else:
+                item_to_pin = self.full_history[0]
+            if item_to_pin not in self.full_pinned_history:
+                new_pinned_history = [item_to_pin] + self.full_pinned_history
+                self.update_and_save_pinned_history(new_pinned_history)
+
+    def pin_selected_text(self, text):
+        if text and text not in self.full_pinned_history:
+            new_pinned_history = [text] + self.full_pinned_history
+            self.update_and_save_pinned_history(new_pinned_history)
+
+    def update_and_save_pinned_history(self, pinned_history):
+        self.full_pinned_history = pinned_history
+        self.filtered_pinned_history = pinned_history[:]
+        self.pinned_history_updated.emit(pinned_history)
+        self.settings.save_pinned_history(pinned_history)
+
+    def remove_from_pinned(self, text):
+        if text and self.full_pinned_history:
+            new_pinned_history = [item for item in self.full_pinned_history if item != text]
+            self.update_and_save_pinned_history(new_pinned_history)
 
     def update_and_save_history(self, history):
         self.full_history = history
@@ -55,8 +86,14 @@ class ClipboardManager(QObject):
     def on_filter_text_changed(self, filter_text):
         self.current_filter = filter_text.lower().strip()
         self.filtered_history = self.full_history if not self.current_filter else [
-                text for text in self.full_history
-                if self.current_filter in text.lower()
-            ]
+            text for text in self.full_history
+            if self.current_filter in text.lower()
+        ]
+
+        self.filtered_pinned_history = self.full_pinned_history if not self.current_filter else [
+            text for text in self.full_pinned_history
+            if self.current_filter in text.lower()
+        ]
 
         self.history_updated.emit(self.filtered_history)
+        self.pinned_history_updated.emit(self.filtered_pinned_history)

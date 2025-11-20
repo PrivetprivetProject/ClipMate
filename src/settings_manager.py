@@ -6,13 +6,14 @@ class SettingsManager(QObject):
 
     def __init__(self):
         super().__init__()
-        self.setting_file = 'clipmate_settings.json'
+        self.setting_file = '../clipmate_settings.json'
         self.settings = self.load_settings()
 
     def load_settings(self):
         default_settings = {
             'max_history_size': 10,
-            'clipboard_history': [],
+            'history': [],
+            'pinned_history': [],
             'global_hotkey': 'Ctrl+Shift+H'
         }
 
@@ -43,8 +44,15 @@ class SettingsManager(QObject):
             self.save_settings()
 
     def get_history(self):
-        return self.settings.get('clipboard_history', [])
+        return self.settings.get('history', [])
 
     def save_history(self, history):
-        self.settings['clipboard_history'] = history
+        self.settings['history'] = history
+        self.save_settings()
+
+    def get_pinned_history(self):
+        return self.settings.get('pinned_history', [])
+
+    def save_pinned_history(self, history):
+        self.settings['pinned_history'] = history
         self.save_settings()
