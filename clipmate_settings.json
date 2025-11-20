@@ -1,22 +1,6 @@
 {
   "max_history_size": 10,
-  "history": [
-    "ay.quit_app.connect(self.quit_app)\n\n        self.main_ui.show_settings.connect(self.settings_ui.show)\n\n    def show_main_window(self):\n        self.main_ui.show()",
-    "self.main_ui.paste_requested.connect(self.clipboard.paste_to_active_app)\n        self.main_ui.clear_history_requested.connect(\n            lambda: self.clipboa",
-    "ain.connect(self.show_main_window)\n        self.tray.show_settings.connect(self.settings_ui.sh"
-  ],
-  "pinned_history": [
-    "self.main_ui.paste_requested.connect(self.clipboard.paste_to_active_app)\n        self.main_ui.clear_history_requested.connect(\n            lambda: self.clipboa",
-    "ain.connect(self.show_main_window)\n        self.tray.show_settings.connect(self.settings_ui.sh",
-    "ay.quit_app.connect(self.quit_app)\n\n        self.main_ui.show_settings.connect(self.settings_ui.show)\n\n    def show_main_window(self):\n        self.main_ui.show()"
-  ],
-  "global_hotkey": "f2",
-  "clipboard_history": [
-    "self.main_ui.paste_requested.connect(self.clipboard.paste_to_active_app)\n        self.main_ui.clear_hist",
-    ".tray.show_main.connect(self.show_main_window)\n        self.tray.show_s",
-    "self.main_ui.filter_text_changed.connect(self.clipboard.on_filter_text_changed)",
-    "self.history_list = QListWidget()\n        self.history_list.itemDoubleClicked.connect(\n            lambda item: self.paste_requested.emit(self.get_item_text(item))\n        )",
-    "self.add_new_tab('Главная', 'Содержимое главной страницы')\n        self.add_new_tab('Поиск', 'Содержимое страницы поиска')",
-    "layout.addWidget(self.tab_widget)"
-  ]
+  "history": [],
+  "pinned_history": [],
+  "global_hotkey": "ctrl+shift+h",
 }
