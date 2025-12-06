@@ -12,9 +12,13 @@ class SettingsManager(QObject):
     def load_settings(self):
         default_settings = {
             'max_history_size': 10,
+            'max_images_size': 10,
             'history': [],
             'pinned_history': [],
-            'global_hotkey': 'Ctrl+Shift+H'
+            'images': [],
+            'global_hotkey': 'Ctrl+Shift+H',
+            'tabs_data': {},
+            'tabs_order': ['Главная', 'Изображения', 'Избранное']
         }
 
         if os.path.exists(self.setting_file):
@@ -42,17 +46,3 @@ class SettingsManager(QObject):
             self.settings[key] = value
             self.settings_changed.emit(key, value)
             self.save_settings()
-
-    def get_history(self):
-        return self.settings.get('history', [])
-
-    def save_history(self, history):
-        self.settings['history'] = history
-        self.save_settings()
-
-    def get_pinned_history(self):
-        return self.settings.get('pinned_history', [])
-
-    def save_pinned_history(self, history):
-        self.settings['pinned_history'] = history
-        self.save_settings()

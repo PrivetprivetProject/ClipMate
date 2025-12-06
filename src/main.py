@@ -20,17 +20,24 @@ class ClipMateApp:
     def connect_signals(self):
         self.clipboard.history_updated.connect(self.main_ui.update_history_list)
         self.clipboard.pinned_history_updated.connect(self.main_ui.update_pinned_history)
+        self.clipboard.images_updated.connect(self.main_ui.update_images_list)
 
         self.main_ui.paste_requested.connect(self.clipboard.paste_to_active_app)
+        self.main_ui.paste_image_requested.connect(self.clipboard.paste_image_to_active_app)
+
         self.main_ui.clear_history_requested.connect(
-            lambda: self.clipboard.update_and_save_history([])
+            lambda: self.clipboard.history_service.clear_history()
         )
         self.main_ui.clear_pinned_history_requested.connect(
-            lambda: self.clipboard.update_and_save_pinned_history([])
+            lambda: self.clipboard.history_service.clear_pinned_history()
+        )
+        self.main_ui.clear_images_requested.connect(
+            lambda: self.clipboard.clear_images()
         )
         self.main_ui.filter_text_changed.connect(self.clipboard.on_filter_text_changed)
         self.main_ui.pin_current_requested.connect(self.main_ui.pin_selected_item)
         self.main_ui.remove_from_pinned_requested.connect(self.clipboard.remove_from_pinned)
+        self.main_ui.remove_image_requested.connect(self.clipboard.remove_image)
 
         self.tray.show_main.connect(self.show_main_window)
         self.tray.show_settings.connect(self.settings_ui.show)

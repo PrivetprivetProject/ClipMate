@@ -1,99 +1,121 @@
-import keyboard
-from PyQt6.QtCore import QObject, pyqtSignal, QTimer
-from PyQt6.QtWidgets import QApplication, QMainWindow
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import QBuffer, QByteArray, QIODevice, QObject, pyqtSignal
+from src.history_service import HistoryService
+from src.paste_service import PasteService
 
 class ClipboardManager(QObject):
     history_updated = pyqtSignal(list)
     pinned_history_updated = pyqtSignal(list)
+    images_updated = pyqtSignal(list)
 
     def __init__(self, settings_manager):
         super().__init__()
         self.settings = settings_manager
         self.clipboard = QApplication.clipboard()
 
-        self.full_history = settings_manager.get_history()
-        self.filtered_history = self.full_history.copy()
-        self.max_size = settings_manager.get('max_history_size')
+        self.history_service = HistoryService(settings_manager)
+        self.paste_service = PasteService()
 
-        self.full_pinned_history = settings_manager.get_pinned_history()
-        self.filtered_pinned_history = self.full_pinned_history.copy()
-        self.current_filter = ''
+        self.history_service.history_updated.connect(self.history_updated)
+        self.history_service.pinned_history_updated.connect(self.pinned_history_updated)
+        self.history_service.images_updated.connect(self.images_updated)
 
-        self.clipboard.dataChanged.connect(self.on_clipboard_change)
-        settings_manager.settings_changed.connect(self.on_settings_change)
+        self._block_clipboard_change = False
+        self.clipboard.dataChanged.connect(self._on_clipboard_change)
 
-    def on_settings_change(self, key, value):
+        settings_manager.settings_changed.connect(self._on_settings_change)
+
+        self.last_text = ''
+        self.last_image_hash = ''
+
+    def _on_clipboard_change(self):
+        if self._block_clipboard_change:
+            return
+
+        try:
+            self._block_clipboard_change = True
+
+            pixmap = self.clipboard.pixmap()
+            if not pixmap.isNull():
+                current_image_hash = self._get_image_hash(pixmap)
+
+                if current_image_hash != self.last_image_hash:
+                    self.last_image_hash = current_image_hash
+                    self.last_text = ''
+                    self.history_service.add_image(pixmap)
+                    return
+                else:
+                    return
+
+            text = self.clipboard.text().strip()
+            if text:
+                if text != self.last_text:
+                    self.last_text = text
+                    self.last_image_hash = ''
+                    self.history_service.add_to_history(text)
+                else:
+                    return
+
+        except Exception:
+            pass
+        finally:
+            self._block_clipboard_change = False
+
+    def _get_image_hash(self, pixmap):
+        try:
+            image = pixmap.toImage()
+            if image.isNull():
+                return 'null_image'
+
+            size = f'{image.width()}x{image.height()}'
+
+            byte_array = QByteArray()
+            buffer = QBuffer(byte_array)
+            buffer.open(QIODevice.OpenModeFlag.WriteOnly)
+
+            success = pixmap.save(buffer, "PNG")
+            if not success:
+                return f'{size}_save_failed'
+
+            buffer.close()
+
+            data = byte_array.data()
+            sample_size = min(1000, len(data))
+            sample_data = data[:sample_size] if data else b''
+
+            return f'{size}_{hash(sample_data) % 100000}'
+
+        except Exception:
+            return 'error_hash'
+
+    def _on_settings_change(self, key, value):
         if key == 'max_history_size':
-            self.max_size = value
-            if len(self.full_history) > self.max_size:
-                self.update_and_save_history(self.full_history[:self.max_size])
-
-    def on_clipboard_change(self):
-        text = self.clipboard.text().strip()
-        if text and text not in self.full_history:
-            new_history = [text] + self.full_history
-            if len(new_history) > self.max_size:
-                new_history = new_history[:self.max_size]
-
-            self.update_and_save_history(new_history)
+            self.history_service.update_max_size(value)
+        elif key == 'max_images_size':
+            self.history_service.update_max_images_size(value)
 
     def pin_current_item(self):
-        if self.full_history:
-            if self.current_filter and self.filtered_history:
-                item_to_pin = self.full_history[0] if self.filtered_history else self.full_history[0]
-            else:
-                item_to_pin = self.full_history[0]
-            if item_to_pin not in self.full_pinned_history:
-                new_pinned_history = [item_to_pin] + self.full_pinned_history
-                self.update_and_save_pinned_history(new_pinned_history)
+        self.history_service.pin_current_item()
 
     def pin_selected_text(self, text):
-        if text and text not in self.full_pinned_history:
-            new_pinned_history = [text] + self.full_pinned_history
-            self.update_and_save_pinned_history(new_pinned_history)
-
-    def update_and_save_pinned_history(self, pinned_history):
-        self.full_pinned_history = pinned_history
-        self.filtered_pinned_history = pinned_history[:]
-        self.pinned_history_updated.emit(pinned_history)
-        self.settings.save_pinned_history(pinned_history)
+        self.history_service.pin_text(text)
 
     def remove_from_pinned(self, text):
-        if text and self.full_pinned_history:
-            new_pinned_history = [item for item in self.full_pinned_history if item != text]
-            self.update_and_save_pinned_history(new_pinned_history)
-
-    def update_and_save_history(self, history):
-        self.full_history = history
-        self.filtered_history = history[:]
-        self.current_filter = ''
-        self.history_updated.emit(history)
-        self.settings.save_history(history)
+        self.history_service.remove_pinned(text)
 
     def paste_to_active_app(self, text):
-        self.minimize_windows()
-        QTimer.singleShot(100, lambda: self.do_paste(text))
-
-    def do_paste(self, text):
-        self.clipboard.setText(text)
-        keyboard.send('ctrl+v')
-
-    def minimize_windows(self):
-        for widget in QApplication.topLevelWidgets():
-            if isinstance(widget, QMainWindow):
-                widget.showMinimized()
+        self.paste_service.paste_text(text)
 
     def on_filter_text_changed(self, filter_text):
-        self.current_filter = filter_text.lower().strip()
-        self.filtered_history = self.full_history if not self.current_filter else [
-            text for text in self.full_history
-            if self.current_filter in text.lower()
-        ]
+        self.history_service.filter_items(filter_text)
 
-        self.filtered_pinned_history = self.full_pinned_history if not self.current_filter else [
-            text for text in self.full_pinned_history
-            if self.current_filter in text.lower()
-        ]
+    def paste_image_to_active_app(self, image_base64):
+        pixmap = self.history_service.get_image_pixmap(image_base64)
+        if not pixmap.isNull():
+            self.paste_service.paste_image(pixmap)
 
-        self.history_updated.emit(self.filtered_history)
-        self.pinned_history_updated.emit(self.filtered_pinned_history)
+    def remove_image(self, image_base64):
+        self.history_service.remove_image(image_base64)
+
+    def clear_images(self):
+        self.history_service.clear_images()
