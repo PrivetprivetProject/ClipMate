@@ -1,4 +1,4 @@
-# 🎯 ClipMate - Умный менеджер буфера обмена
+# ClipMate - Умный менеджер буфера обмена
 
 ![Python](https://img.shields.io/badge/Python-3.8+-green)
 ![Windows](https://img.shields.io/badge/Platform-Windows-blue)
