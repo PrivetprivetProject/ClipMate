@@ -1,0 +1,15 @@
+{
+  "max_history_size": 10,
+  "max_images_size": 10,
+  "history": [],
+  "pinned_history": [],
+  "images": [],
+  "global_hotkey": "Ctrl+Shift+H",
+  "tabs_data": {},
+  "tabs_order": [
+    "Главная",
+    "Изображения",
+    "Избранное"
+  ],
+  "current_theme": "gradient"
+}
