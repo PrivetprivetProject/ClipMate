@@ -23,8 +23,6 @@ class ClipboardManager(QObject):
         self._block_clipboard_change = False
         self.clipboard.dataChanged.connect(self.on_clipboard_change)
 
-        settings_manager.settings_changed.connect(self.on_settings_change)
-
         self.last_text = ''
         self.last_image_hash = ''
 
@@ -87,12 +85,6 @@ class ClipboardManager(QObject):
 
         except Exception:
             return 'error_hash'
-
-    def on_settings_change(self, key, value):
-        if key == 'max_history_size':
-            self.history_service.update_max_size(value)
-        elif key == 'max_images_size':
-            self.history_service.update_max_images_size(value)
 
     def pin_current_item(self):
         self.history_service.pin_current_item()

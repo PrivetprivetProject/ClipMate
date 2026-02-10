@@ -10,14 +10,11 @@ class ImageService(QObject):
         self.settings = settings_manager
 
         self.images = settings_manager.get('images')
-        self.max_size = settings_manager.get('max_images_size')
 
     def add_image(self, pixmap):
         image_base64 = self.pixmap_to_base64(pixmap)
         if image_base64 and image_base64 not in self.images:
             new_images = [image_base64] + self.images
-            if len(new_images) > self.max_size:
-                new_images = new_images[:self.max_size]
             self._update_images(new_images)
             return True
         return False
@@ -31,12 +28,6 @@ class ImageService(QObject):
 
     def clear_images(self):
         self._update_images([])
-
-    def update_max_size(self, new_size):
-        self.max_size = new_size
-        if len(self.images) > self.max_size:
-            self.images = self.images[:self.max_size]
-            self._update_images(self.images)
 
     def get_image_pixmap(self, image_base64):
         return self.base64_to_pixmap(image_base64)

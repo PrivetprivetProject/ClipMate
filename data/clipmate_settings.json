@@ -1,6 +1,4 @@
 {
-  "max_history_size": 10,
-  "max_images_size": 10,
   "history": [],
   "pinned_history": [],
   "images": [],
@@ -11,5 +9,7 @@
     "Изображения",
     "Избранное"
   ],
-  "current_theme": "gradient"
+  "current_theme": "gradient",
+  "max_history_size": 10,
+  "max_images_size": 10
 }

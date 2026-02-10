@@ -12,7 +12,6 @@ class HistoryService(QObject):
 
         self.full_history = settings_manager.get('history')
         self.filtered_history = self.full_history.copy()
-        self.max_size = settings_manager.get('max_history_size')
 
         self.full_pinned_history = settings_manager.get('pinned_history')
         self.filtered_pinned_history = self.full_pinned_history.copy()
@@ -24,8 +23,6 @@ class HistoryService(QObject):
     def add_to_history(self, text):
         if text and text not in self.full_history:
             new_history = [text] + self.full_history
-            if len(new_history) > self.max_size:
-                new_history = new_history[:self.max_size]
             self._update_history(new_history)
 
     def pin_current_item(self):
@@ -42,11 +39,6 @@ class HistoryService(QObject):
         if text and self.full_pinned_history:
             new_pinned_history = [item for item in self.full_pinned_history if item != text]
             self._update_pinned_history(new_pinned_history)
-
-    def update_max_size(self, new_size):
-        self.max_size = new_size
-        if len(self.full_history) > self.max_size:
-            self._update_history(self.full_history[:self.max_size])
 
     def filter_items(self, filter_text):
         self.current_filter = filter_text.lower().strip()
@@ -90,9 +82,6 @@ class HistoryService(QObject):
 
     def clear_images(self):
         self.image_service.clear_images()
-
-    def update_max_images_size(self, new_size):
-        self.image_service.update_max_size(new_size)
 
     def get_image_pixmap(self, image_base64):
         return self.image_service.get_image_pixmap(image_base64)

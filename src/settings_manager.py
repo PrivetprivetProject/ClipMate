@@ -24,8 +24,6 @@ class SettingsManager(QObject):
 
     def load_settings(self):
         default_settings = {
-            'max_history_size': 10,
-            'max_images_size': 10,
             'history': [],
             'pinned_history': [],
             'images': [],

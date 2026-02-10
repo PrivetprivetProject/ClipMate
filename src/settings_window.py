@@ -43,28 +43,6 @@ class SettingsUI(QMainWindow):
         content_layout = QVBoxLayout(content_container)
         content_layout.setContentsMargins(15, 15, 15, 15)
 
-        text_group = QGroupBox('Настройки текста')
-        text_layout = QFormLayout(text_group)
-
-        self.history_size = QSpinBox()
-        self.history_size.setRange(1, 100)
-        self.history_size.setValue(self.settings.get('max_history_size'))
-        self.history_size.valueChanged.connect(
-            lambda value: self.settings.set('max_history_size', value)
-        )
-        text_layout.addRow('Максимальный размер истории:', self.history_size)
-
-        image_group = QGroupBox('Настройки изображений')
-        image_layout = QFormLayout(image_group)
-
-        self.image_size = QSpinBox()
-        self.image_size.setRange(1, 20)
-        self.image_size.setValue(self.settings.get('max_images_size', 10))
-        self.image_size.valueChanged.connect(
-            lambda value: self.settings.set('max_images_size', value)
-        )
-        image_layout.addRow('Максимум изображений:', self.image_size)
-
         hotkey_group = QGroupBox('Горячие клавиши')
         hotkey_layout = QHBoxLayout(hotkey_group)
         self.hotkey_edit = QLineEdit()
@@ -94,8 +72,6 @@ class SettingsUI(QMainWindow):
 
         theme_layout.addRow('Тема приложения:', self.theme_combo)
 
-        content_layout.addWidget(text_group)
-        content_layout.addWidget(image_group)
         content_layout.addWidget(hotkey_group)
         content_layout.addWidget(theme_group)
 
